@@ -39,12 +39,20 @@
     // Mở camera
     function startCamera() {
       const video = document.getElementById('camera');
-      navigator.mediaDevices.getUserMedia({ video: true })
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
         .then(stream => {
           video.srcObject = stream;
           video.style.display = 'block';
         })
-        .catch(err => alert("Không thể mở camera: " + err));
+        .catch(() => {
+          // Nếu không có camera sau, dùng camera mặc định
+          navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+              video.srcObject = stream;
+              video.style.display = 'block';
+            })
+            .catch(err2 => alert("Không thể mở camera: " + err2));
+        });
     }
 
     // Chụp ảnh từ camera
@@ -52,9 +60,9 @@
       const video = document.getElementById('camera');
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = 150;
-      canvas.height = 150;
-      ctx.drawImage(video, 0, 0, 150, 150);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       showPreviewAndSend(canvas);
     }
 
