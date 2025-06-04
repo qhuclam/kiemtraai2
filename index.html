@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nhận diện quả</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    video, img { max-width: 100%; margin-top: 10px; }
+    canvas { display: none; }
+    #result { margin-top: 15px; font-size: 18px; font-weight: bold; }
+    button { margin: 10px; padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+  <h2>Nhận diện quả (Tươi / Hỏng)</h2>
+
+  <!-- Tùy chọn upload ảnh -->
+  <input type="file" accept="image/*" id="upload" onchange="handleFileUpload(this)" />
+  <br>
+
+  <!-- Video từ camera (nếu được hỗ trợ) -->
+  <video id="camera" autoplay playsinline style="display:none;"></video>
+  <br>
+  <button onclick="startCamera()">📷 Dùng camera</button>
+  <button onclick="captureFromCamera()">📸 Chụp ảnh</button>
+  <br>
+
+  <!-- Ảnh preview -->
+  <img id="preview" style="display:none;" />
+  <canvas id="canvas"></canvas>
+
+  <div id="result">Kết quả sẽ hiển thị ở đây...</div>
+
+  <script>
+    const API_URL = "https://a813-34-19-110-159.ngrok-free.app/predict"; // ← THAY NGROK URL
+
+    // Mở camera
+    function startCamera() {
+      const video = document.getElementById('camera');
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+          video.style.display = 'block';
+        })
+        .catch(err => alert("Không thể mở camera: " + err));
+    }
+
+    // Chụp ảnh từ camera
+    function captureFromCamera() {
+      const video = document.getElementById('camera');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 150;
+      canvas.height = 150;
+      ctx.drawImage(video, 0, 0, 150, 150);
+      showPreviewAndSend(canvas);
+    }
+
+    // Xử lý upload từ thư viện
+    function handleFileUpload(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.getElementById('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 150;
+          canvas.height = 150;
+          ctx.drawImage(img, 0, 0, 150, 150);
+          showPreviewAndSend(canvas);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Preview và gửi ảnh
+    function showPreviewAndSend(canvas) {
+      const preview = document.getElementById('preview');
+      preview.src = canvas.toDataURL('image/jpeg');
+      preview.style.display = 'block';
+
+      const result = document.getElementById('result');
+      result.textContent = "Đang phân tích...";
+
+      canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append('image', blob, 'resized.jpg');
+
+        fetch(API_URL, {
+          method: 'POST',
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+          result.textContent = `Kết quả: ${data.label} (${data.confidence}%)`;
+          result.style.color = data.label === "Quả tươi" ? "green" : "red";
+        })
+        .catch(err => {
+          console.error(err);
+          result.textContent = "Lỗi gửi ảnh.";
+        });
+      }, 'image/jpeg');
+    }
+  </script>
+
+</body>
+</html>
