@@ -77,8 +77,8 @@
         img.onload = function () {
           const canvas = document.getElementById('canvas');
           const ctx = canvas.getContext('2d');
-          canvas.width = canvas.canvasWidth;
-          canvas.height = canvas.canvasHeight;
+          canvas.width = img.Width;
+          canvas.height = img.Height;
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           showPreviewAndSend(canvas);
         };
